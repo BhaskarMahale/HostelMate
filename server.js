@@ -1,23 +1,29 @@
-import express from "express";
+import express, { Router } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 
+
 // Load env 
 dotenv.config();
 
+const app = express();
+
 // Connect Database
 connectDB();
-
-const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 
+import StudentRoutes from "./routes/StudentRoutes.js";
+app.use("/api/Student/",StudentRoutes);
+
+
+
 // Test Route
 app.get("/", (req, res) => {
-  res.send("HostelMate is Running ");
+  res.send("Home Page");
 });
 
 const PORT = process.env.PORT || 5000;
