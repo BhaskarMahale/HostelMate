@@ -1,27 +1,22 @@
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
+const cron = require('node-cron');
+const Payment = require('../models/Payment');
+const User = require('../models/User');
+const { sendEmail } = require('./emailService');
 
-const generateReceiptPDF = (payment, user) => {
-    return new Promise((resolve, reject) => {
-        const fileName = `receipt-${payment._id}.pdf`;
-        const filePath = path.join('uploads', fileName);
-        const doc = new PDFDocument();
-
-        doc.pipe(fs.createWriteStream(filePath));
-        doc.fontSize(20).text('HostelMate — Payment Receipt', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(12).text(`Student: ${user.name}`);
-        doc.text(`Email: ${user.email}`);
-        doc.text(`Month: ${payment.month}`);
-        doc.text(`Amount: ₹${payment.amount}`);
-        doc.text(`Status: ${payment.status.toUpperCase()}`);
-        doc.text(`Date: ${new Date(payment.createdAt).toLocaleDateString()}`);
-        doc.end();
-
-        doc.on('finish', () => resolve(fileName));
-        doc.on('error', reject);
-    });
-};
-
-module.exports = { generateReceiptPDF };
+// Runs on 1st of every month at 8 AM
+cron.schedule('0 8 1 * *', async () => {
+  console.log('📧 Running monthly fee reminder cron...');
+  try {
+    const unpaidPayments = await Payment.find({ status: 'unpaid' }).populate('studentId', 'name email');
+    for (const payment of unpaidPayments) {
+      await sendEmail(
+        payment.studentId.email,
+        'HostelMate — Fee Reminder',
+        `Dear ${payment.studentId.name},\n\nYour hostel fee for ${payment.month} of ₹${payment.amount} is still unpaid.\nPlease pay at the earliest.\n\n— HostelMate Team`
+      );
+    }
+    console.log(`✅ Reminders sent to ${unpaidPayments.length} students`);
+  } catch (err) {
+    console.error('❌ Cron error:', err.message);
+  }
+});
