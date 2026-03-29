@@ -29,5 +29,9 @@ app.use('/api/students', studentRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/payments', paymentRoutes);
 
+app.get("/", (req, res) => {
+  res.send("HostelMate API is running 🚀");
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
